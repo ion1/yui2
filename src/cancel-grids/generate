@@ -1,0 +1,100 @@
+#!/usr/bin/env ruby
+
+# Copyright © 2009 Yahoo! Inc.
+#
+# Contributed by Johan Kiviniemi
+
+# Output a set of CSS rules that effectively cancels the Grids CSS, which
+# should be passed to standard input.
+
+begin
+  require 'rubygems'
+rescue LoadError
+  # Ignore.
+end
+
+require 'css_parser'
+
+defaults = {
+  'display'  => ['block'],
+  'float'    => ['none'],
+  'margin'   => ['0'],
+  'position' => ['static'],
+  'width'    => ['auto'],
+
+  'text-align' => [
+    'left',  # CSS 2
+    'start', # CSS 3, handles rtl direction
+  ],
+
+  # Ignore.
+  'zoom' => nil,
+}
+
+# Strip IE prefixes.
+css_in  = ARGF.read.gsub %r{((?:\{|;|\*/)\s*)[_*]}, '\1'
+
+css_out = <<-E
+/**
+ * YUI Cancel-Grids
+ * @module cancel-grids
+ * @namespace yui-
+ * @requires grids
+ */
+
+/**
+ * Generated automatically based on grids.css
+ */
+E
+
+parser = CssParser::Parser.new
+parser.add_block! css_in
+
+prop_sels_map = Hash.new do |hash, key| hash[key] = [] end
+
+parser.each_rule_set do |rules|
+  selectors = rules.selectors.map &:strip
+
+  # Ignore any properties for the :after pseudo-element.
+  selectors.delete_if do |selector|
+    selector =~ /:after\z/
+  end
+
+  next if selectors.empty?
+
+  rules.each_declaration do |prop, val, is_important|
+    prop.sub! /-(?:top|right|bottom|left)\z/, ''
+
+    unless defaults.has_key? prop
+      raise RuntimeError, "Unhandled property #{prop.inspect}"
+    end
+
+    # Ignore properties with nil as the default value.
+    next unless defaults[prop]
+
+    # Ignore properties that have been set to the default value.
+    next if val == defaults[prop].last
+
+    selectors.each do |selector|
+      prop_sels_map[prop] << selector
+    end
+  end
+end
+
+prop_sels_map = prop_sels_map.sort_by do |prop, selectors|
+  prop
+end.map do |prop, selectors|
+  [prop, selectors.sort.uniq]
+end
+
+prop_sels_map.each do |prop, selectors|
+  css_out << "\n%s {\n" % selectors.join(",\n")
+
+  defaults[prop].each do |value|
+    css_out << "\t%s: %s;\n" % [prop, value]
+  end
+
+  css_out << "}\n"
+end
+
+$stdout << css_out

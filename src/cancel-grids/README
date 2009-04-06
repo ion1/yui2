@@ -1,0 +1,55 @@
+YUI Library – Cancel-Grids – Release Notes
+
+Cancel-Grids effectively cancels the effect of the Grids CSS. Activate it on
+handheld and otherwise narrow browsers as follows:
+
+...
+<link rel="stylesheet" type="text/css"
+  href="http://yui.yahooapis.com/2.NEXT/build/grids/grids-min.css">
+                                              (or reset-fonts-grids)
+...
+<link rel="stylesheet" type="text/css"
+  href="http://yui.yahooapis.com/2.NEXT/build/cancel-grids/cancel-grids-min.css"
+  media="handheld, only all and (max-width: 780px)">
+
+Set max-width as the width of your layout plus 30 pixels. (TODO: how many
+pixels really?)
+
+Q: Why load grids and then conditionally cancel it instead of just loading
+   grids conditionally?
+A: It’s not that easy. To load grids only on certain non-handheld medias wider
+   than n pixels *and* to support IE (which doesn’t parse “screen and ...” as
+   “screen” but “some-unrecognized-media” instead), you’d need to use a hack
+   like:
+     <!--[if !IE]>-->
+     <link rel="stylesheet" type="text/css"
+       href="http://yui.yahooapis.com/2.NEXT/build/grids/grids-min.css"
+       media="screen and (min-width: 780px), print and (min-width: 780px),
+              projection and (min-width: 780px), ...">
+     <!--<![endif]-->
+     <!--[if IE]>
+     <link rel="stylesheet" type="text/css"
+       href="http://yui.yahooapis.com/2.NEXT/build/grids/grids-min.css">
+     <![endif]-->
+   That also prevents you from using the handy reset-grids-fonts file.
+
+Q: Why list a specific selector for each Grids selector?
+A: This way one doesn’t need to worry about whether a given Cancel-Grids rule
+   really overrides an earlier Grids rule due to different selector
+   specificity[1], without using !important which has its own repercussions.
+   A future version might use simpler selectors that have been verified to
+   cancel Grids for certain. As of this writing, the entire file only weighs
+   454 bytes when minified and gzipped.
+
+[1]: http://www.w3.org/TR/CSS21/cascade.html#specificity
+
+How various browsers react to CSS media types:
+http://www.alistapart.com/articles/returnofthemobilestylesheet
+
+About media queries (such as max-width):
+http://www.w3.org/TR/css3-mediaqueries/
+
+Version 2.NEXT
+
+  * Initial release.
+
